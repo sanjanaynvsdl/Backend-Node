@@ -1,11 +1,28 @@
 import React, { useEffect } from "react";
 import { Form, Input, Button, Radio, message } from "antd";
 import { Link, useNavigate } from "react-router-dom";
+import { RegisterUser } from "../calls/users";
 
 
+//on-click of sign-up button onFinish function is called
+//the values of the form are printed on the console
 function Register() {
   const onFinish = async (values) => {
+
     console.log(values);
+    try{
+      const response=await RegisterUser(values);
+      // console.log(response);
+      if (response.success) {
+        message.success(response.message);
+      } else {
+        message.error(response.message);
+      }
+
+    }
+    catch(error){
+      console.log(error);
+    }
    
   };
 

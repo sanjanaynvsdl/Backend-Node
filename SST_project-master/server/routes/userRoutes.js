@@ -1,57 +1,78 @@
+// module.exports = router;
 const express = require("express");
 const User = require("../models/userModel");
+const bcrypt = require("bcrypt");
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
-const bcrypt = require("bcrypt");
+
+// Define the JWT secret key directly
+const JWT_SECRET = 'your_secret_key';
 
 router.post("/register", async (req, res) => {
-    try{
-        //this is how we handle the errors
-        const user=await User.findOne({ email: req.body.email });
-        if(user) {
-            return res.status(400).json("User with this email already exists");
+    try {
+        const existingUser = await User.findOne({ email: req.body.email });
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: "User with this email already exists"
+            });
         }
-        const salt=await bcrypt.genSalt(10);
-        const hashPassword= await bcrypt.hash(req.body.password,salt);
-        req.body.password=hashPassword;
-        //this is how we hash the password it forms 10 rounds of hashing
-        const newUser=new User(req.body);
-        await newUser.save();
-        
 
-    } catch(err) {
-        res.status(500).json(err);
+        const salt = await bcrypt.genSalt(10);
+        const hashPassword = await bcrypt.hash(req.body.password, salt);
+        req.body.password = hashPassword;
+
+        const newUser = new User(req.body);
+        await newUser.save();
+
+        res.status(201).json({
+            success: true,
+            message: "You've successfully signed up, please login now!"
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
     }
 });
 
 router.post("/login", async (req, res) => {
-    try{
-        const user=await User.findOne({ email: req.body.email });
-        if(!user) {
-            return res.send({
-                message : "User not found"
+    try {
+        const user = await User.findOne({ email: req.body.email });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
             });
+        }
 
-        }
-        const isValid=await bcrypt.compare(req.body.password,user.password)
-        //bcrypt.compare compares the password entered by the user with the hashed password in the database
-        //after 10 round of hashing it compares login.password with registered password
-        //this how we compare the password using salt!
-        if(!isValid) {
-            return res.send({
-                message : "Invalid password"
-                
+        const isValid = await bcrypt.compare(req.body.password, user.password);
+        if (!isValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password"
             });
         }
-        res.send({
-            message : "Login successful"
+
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
+
+        res.status(200).json({
+            success: true,
+            message: "You've successfully logged in!",
+            token: token
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: err.message
         });
     }
-    catch(err) {
-        res.status(500).json(err);
-    }
-  
 });
-
 
 module.exports = router;
