@@ -54,6 +54,7 @@ app.delete('/course/:id',(req,res)=> {
         res.send(courses);
     }
     catch(err){
+        // console.log(err);
         console.log(err);
     }
 });
